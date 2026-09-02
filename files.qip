@@ -1,0 +1,37 @@
+# --------------------------------------------------------------------------
+# Sega System C / C-2
+#
+# Everything the Quartus build reads.
+# --------------------------------------------------------------------------
+
+# 68000
+# fx68k ships no .qip of its own, so the three synthesis sources are listed
+# here.  hdl/verilator/ is deliberately absent: that variant exists because
+# Verilator will not compile these, and building both would define fx68k twice.
+set_global_assignment -name SYSTEMVERILOG_FILE rtl/FX68K/hdl/fx68k.sv
+set_global_assignment -name SYSTEMVERILOG_FILE rtl/FX68K/hdl/fx68kAlu.sv
+set_global_assignment -name SYSTEMVERILOG_FILE rtl/FX68K/hdl/uaddrPla.sv
+
+# Sound: YM3438 (jt12), the VDP's PSG (jt89), uPD7759 (jt7759)
+set_global_assignment -name QIP_FILE rtl/jt12/jt12.qip
+set_global_assignment -name QIP_FILE rtl/jt89/jt89.qip
+set_global_assignment -name QIP_FILE rtl/jt7759/hdl/jt7759.qip
+
+# 315-5313 VDP and its block RAM wrappers, from Genesis_MiSTer
+set_global_assignment -name VHDL_FILE rtl/bram.vhd
+set_global_assignment -name VHDL_FILE rtl/mlab.vhd
+set_global_assignment -name VHDL_FILE rtl/vdp_common.vhd
+set_global_assignment -name VHDL_FILE rtl/vdp.vhd
+
+# Memory
+set_global_assignment -name SYSTEMVERILOG_FILE rtl/sdram.sv
+
+# The C-2 board
+set_global_assignment -name SYSTEMVERILOG_FILE rtl/c2_romload.sv
+set_global_assignment -name SYSTEMVERILOG_FILE rtl/c2_io.sv
+set_global_assignment -name SYSTEMVERILOG_FILE rtl/c2_prot.sv
+set_global_assignment -name SYSTEMVERILOG_FILE rtl/c2_palette.sv
+set_global_assignment -name SYSTEMVERILOG_FILE rtl/c2_system.sv
+
+set_global_assignment -name SDC_FILE Arcade-SystemC2.sdc
+set_global_assignment -name SYSTEMVERILOG_FILE Arcade-SystemC2.sv

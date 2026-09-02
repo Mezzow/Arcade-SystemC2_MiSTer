@@ -1,0 +1,8 @@
+output_files/
+db/
+incremental_db/
+build_id.v
+*.bak
+*.qws
+roms/
+**/.DS_Store
