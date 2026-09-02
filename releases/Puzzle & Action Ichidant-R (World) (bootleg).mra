@@ -17,12 +17,12 @@
         <part name="1.f10" map="01"/>
       </interleave>
       <interleave output="16">
-        <part name="4.f8" map="10"/>
-        <part name="3.f9" map="01"/>
+        <part name="epr-16888.ic34" map="10"/>
+        <part name="epr-16887.ic33" map="01"/>
       </interleave>
       <!-- region 1: uPD7759 samples, 524288 bytes -->
       <part>01 08 00 00</part>
-      <part name="2.e3"/>
+      <part name="pa2_02.bin"/>
       <!-- region 2: 317-xxxx protection table -->
       <part>02 00 01 00</part>
       <part>00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00</part>

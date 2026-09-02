@@ -17,8 +17,8 @@
         <part name="1.u28" map="01"/>
       </interleave>
       <interleave output="16">
-        <part name="4.u31" map="10"/>
-        <part name="3.u30" map="01"/>
+        <part name="mpr-15616.ic34" map="10"/>
+        <part name="mpr-15615.ic33" map="01"/>
       </interleave>
       <!-- region 1: uPD7759 samples, 0 bytes -->
       <part>01 00 00 00</part>

@@ -18,8 +18,8 @@
       </interleave>
       <part repeat="524288">00</part>
       <interleave output="16">
-        <part name="epr-16003.ic34" map="10"/>
-        <part name="epr-16002.ic33" map="01"/>
+        <part name="epr-17180.ic34" map="10"/>
+        <part name="epr-17179.ic33" map="01"/>
       </interleave>
       <!-- region 1: uPD7759 samples, 262144 bytes -->
       <part>01 04 00 00</part>

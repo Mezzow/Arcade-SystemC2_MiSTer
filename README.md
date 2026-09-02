@@ -104,8 +104,8 @@ again).
 memory layout, the DIP definitions, the button list and the 317-xxxx protection table all arrive
 in the MRA's data stream.
 
-MRAs for **all 55 machines** in MAME's `segac2.cpp` are in `releases/`. The four above are the
-only ones that have been run; the other 51 are generated from the same driver description and
+MRAs for **all 57 machines** in MAME's `segac2.cpp` are in `releases/`. The four above are the
+only ones that have been run; the other 53 are generated from the same driver description and
 checked structurally — every part they name exists at the size MAME declares, every region header
 matches the bytes its parts produce, and each carries its own protection table and DIP
 definitions — but **none of them has been booted**. Expect some not to work.
@@ -116,10 +116,15 @@ definitions — but **none of them has been booted**. Expect some not to work.
 `potopoto`, `puyobl`, `puyoj`, `puyoja`, `puyopuy2`, `ribbitj`, `soniccar`, `sonicfgt`,
 `sonicfgtj`, `sonicpop`, `stkclmns`, `stkclmnsj`, `tantr`, `tantrbl`, `tantrbl2`, `tantrbl3`,
 `tantrbl4`, `tantrkor`, `tfrceac`, `tfrceacb`, `tfrceacj`, `tfrceacjpb`, `twinsqua`, `wwanpanm`,
-`wwanpanmo`, `wwmarine`, `zunkyou`
+`wwanpanmo`, `wwjumbo`, `wwmarine`, `wwpajero`, `zunkyou`
 
 Nineteen of those are clones that take some of their data from the parent machine, so their MRAs
 name both — the parent has to be present alongside the clone.
+
+`wwjumbo` and `wwpajero` are a special case: MAME added them to `segac2.cpp` after the 0.276 this
+core is pinned to, so their layout and switch definitions are carried as data alongside the pinned
+driver rather than by re-pointing it, which would put the frame-exact verification of the four
+tested sets in question for the sake of two untested machines.
 
 ## Installation
 

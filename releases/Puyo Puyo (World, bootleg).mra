@@ -18,12 +18,12 @@
       </interleave>
       <part repeat="786432">00</part>
       <interleave output="16">
-        <part name="puyopuyb.6bo" map="10"/>
-        <part name="puyopuyb.5bo" map="01"/>
+        <part name="epr-15200.ic34" map="10"/>
+        <part name="epr-15199.ic33" map="01"/>
       </interleave>
       <!-- region 1: uPD7759 samples, 131072 bytes -->
       <part>01 02 00 00</part>
-      <part name="puyopuyb.abo"/>
+      <part name="epr-15196.ic4"/>
       <!-- region 2: 317-xxxx protection table -->
       <part>02 00 01 00</part>
       <part>03 03 0A 0A 05 05 0C 0C 03 03 0A 0A 05 05 0C 0C</part>
