@@ -10,8 +10,8 @@
    <rom index="0" zip="wwpajero.zip" md5="none">
       <!-- board config header -->
       <part>00 00</part>
-      <!-- region 0: 68000 program, 786432 bytes -->
-      <part>00 0C 00 00</part>
+      <!-- region 0: 68000 program, 2097152 bytes -->
+      <part>00 20 00 00</part>
       <interleave output="16">
         <part name="epr-12925.ic32" map="10"/>
         <part name="epr-12924.ic31" map="01"/>
@@ -24,6 +24,7 @@
         <part name="epr-13125.ic34" map="10"/>
         <part name="epr-13124.ic33" map="01"/>
       </interleave>
+      <part repeat="1310720">FF</part>
       <!-- region 1: uPD7759 samples, 262144 bytes -->
       <part>01 04 00 00</part>
       <part name="epr-12923.ic4"/>

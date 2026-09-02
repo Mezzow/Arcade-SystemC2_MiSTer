@@ -10,8 +10,8 @@
    <rom index="0" zip="tfrceacjpb.zip" md5="none">
       <!-- board config header -->
       <part>00 00</part>
-      <!-- region 0: 68000 program, 1572864 bytes -->
-      <part>00 18 00 00</part>
+      <!-- region 0: 68000 program, 2097152 bytes -->
+      <part>00 20 00 00</part>
       <interleave output="16">
         <part name="ic32_t.f.ac_075f.ic32" map="10"/>
         <part name="ic31_t.f.ac_0d26.id31" map="01"/>
@@ -21,6 +21,7 @@
         <part name="ic34_t.f.ac_549d.ic34" map="10"/>
         <part name="ic33_t.f.ac_d131.ic33" map="01"/>
       </interleave>
+      <part repeat="524288">FF</part>
       <!-- region 1: uPD7759 samples, 262144 bytes -->
       <part>01 04 00 00</part>
       <part repeat="262144">00</part>

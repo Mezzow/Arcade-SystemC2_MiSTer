@@ -167,6 +167,12 @@ never revises it. If you used an earlier build whose MRA had six buttons, delete
   drawn: Puyo Puyo frames 120 and 300 (851 and 177 pixels of 71680), SegaSonic Bros. frames 600
   and 900, and five of Ribbit!'s seven sampled frames.
 - SegaSonic Bros. does not write the two uPD7759 samples MAME writes at frame 285.
+- `tfrceacjpb` boots into its diagnostics menu instead of the game. The board writes a bad
+  direction byte to the 315-5296 and MAME compensates by forcing the DDR to 0xF
+  (`segac2.cpp`, `tfrceacjpb` machine config); the core does not implement that override yet, so
+  the service port reads as though TEST were held. Its parent `tfrceac` is unaffected.
+- Six `pclub` sets and the Megalo 50 moving-seat sets also have their own machine configurations
+  in MAME which the core does not reproduce; only the seat peripheral is known to be harmless.
 - The Megalo 50 moving-seat device that MAME wires to Puyo Puyo and Ribbit! is a cabinet
   peripheral, not C-2 board hardware, and is out of scope.
 
