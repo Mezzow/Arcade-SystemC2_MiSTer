@@ -87,46 +87,86 @@ what lets a single build serve every machine in the family.
 
 ## Supported games
 
+All 57 machines in MAME's `segac2.cpp` have an MRA in `releases/`, and every one of them has been
+started on real hardware: **53 reach their attract or title screen**. The four marked as verified
+below are additionally compared frame-by-frame against MAME in simulation, and were chosen because
+between them they cover every structural branch in the design -- the no-PCM path, the
+no-protection path, PCM bank switching, the alternate palette address mapping, and a `ROM_COPY`
+mirror the MRA has to reproduce.
+
 | Game | Set | Board | Protection | Samples | State |
 |---|---|---|---|---|---|
-| Columns | `columns` | System C | 317-0149 | none | plays on hardware; **7/7 sampled frames pixel-identical to MAME** |
-| Puyo Puyo | `puyo` | System C-2 | 317-0203 | 1 bank | plays on hardware; 5/7 frames pixel-identical |
-| Ribbit! | `ribbit` | System C-2 | 317-0178 | 4 banks | plays on hardware; alt palette mode; 2/7 frames pixel-identical |
-| SegaSonic Bros. | `ssonicbr` | System C-2 | none | 1 bank | plays on hardware; 5/7 frames pixel-identical |
+| Bloxeed (US, C System, Rev A) | `bloxeedu` | System C | none | none | boots on hardware |
+| Bloxeed (World, C System) | `bloxeedc` | System C | none | none | boots on hardware |
+| Borench (Japan) | `borenchj` | System C-2 | yes | 1 bank | boots on hardware |
+| Borench (set 1) | `borench` | System C-2 | yes | 1 bank | boots on hardware |
+| Borench (set 2) | `borencha` | System C-2 | yes | 1 bank | boots on hardware |
+| Columns (Japan) | `columnsj` | System C | yes | none | boots on hardware |
+| Columns (US, cocktail, Rev A) | `columnsu` | System C | yes | none | boots on hardware |
+| Columns (World) | `columns` | System C | yes | none | boots and plays; **7/7 frames pixel-identical to MAME** |
+| Columns II: The Voyage Through Time (Japan) | `column2j` | System C | yes | none | boots on hardware |
+| Columns II: The Voyage Through Time (World) | `columns2` | System C | yes | none | boots on hardware |
+| Monita to Rimoko no Head On Channel (prototype, hack) | `headonch` | System C-2 | none | 2 banks | boots on hardware |
+| OOPArts (prototype, joystick hack) | `ooparts` | System C-2 | none | 2 banks | boots on hardware |
+| Poto Poto (Japan, Rev A) | `potopoto` | System C-2 | yes | 2 banks | boots on hardware |
+| Print Club (Japan Vol.1) | `pclubj` | System C-2 | yes | 4 banks | boots on hardware |
+| Print Club (Japan Vol.2) | `pclubjv2` | System C-2 | yes | 4 banks | boots on hardware |
+| Print Club (Japan Vol.3) | `pclubjv3` | System C-2 | yes | 4 banks | **does not work** |
+| Print Club (Japan Vol.4) | `pclubjv4` | System C-2 | yes | 4 banks | boots on hardware |
+| Print Club (Japan Vol.5) | `pclubjv5` | System C-2 | yes | 4 banks | boots on hardware |
+| Print Club (World) | `pclub` | System C-2 | yes | 4 banks | boots on hardware |
+| Puyo Puyo (Japan, Rev A) | `puyoja` | System C-2 | yes | 1 bank | boots on hardware |
+| Puyo Puyo (Japan, Rev B) | `puyoj` | System C-2 | yes | 1 bank | boots on hardware |
+| Puyo Puyo (World) | `puyo` | System C-2 | yes | 1 bank | boots and plays; 5/7 frames pixel-identical |
+| Puyo Puyo (World, bootleg) | `puyobl` | System C-2 | yes | 1 bank | boots on hardware |
+| Puyo Puyo 2 (Japan) | `puyopuy2` | System C-2 | yes | 4 banks | boots on hardware |
+| Puzzle & Action: Ichidant-R (Japan) | `ichirj` | System C-2 | yes | 4 banks | boots on hardware |
+| Puzzle & Action: Ichidant-R (Japan) (bootleg) | `ichirjbl` | System C | none | none | **does not work** |
+| Puzzle & Action: Ichidant-R (Korea) | `ichirk` | System C-2 | yes | 4 banks | boots on hardware |
+| Puzzle & Action: Ichidant-R (World) | `ichir` | System C-2 | yes | 4 banks | boots on hardware |
+| Puzzle & Action: Ichidant-R (World) (bootleg) | `ichirbl` | System C-2 | none | 4 banks | boots on hardware |
+| Puzzle & Action: Tant-R (Japan) | `tantr` | System C-2 | yes | 2 banks | boots on hardware |
+| Puzzle & Action: Tant-R (Japan) (bootleg set 1) | `tantrbl` | System C-2 | none | 2 banks | boots on hardware |
+| Puzzle & Action: Tant-R (Japan) (bootleg set 2) | `tantrbl2` | System C | yes | none | boots on hardware |
+| Puzzle & Action: Tant-R (Japan) (bootleg set 3) | `tantrbl3` | System C | yes | none | boots on hardware |
+| Puzzle & Action: Tant-R (Japan) (bootleg set 4) | `tantrbl4` | System C-2 | none | 2 banks | boots on hardware |
+| Puzzle & Action: Tant-R (Korea) | `tantrkor` | System C-2 | yes | 2 banks | boots on hardware |
+| Ribbit! | `ribbit` | System C-2 | yes | 4 banks | boots and plays; 2/7 frames pixel-identical; alt palette mode |
+| Ribbit! (Japan) | `ribbitj` | System C-2 | yes | 4 banks | boots on hardware |
+| SegaSonic Bros. (prototype, hack) | `ssonicbr` | System C-2 | none | 1 bank | boots and plays; 5/7 frames pixel-identical |
+| SegaSonic Cosmo Fighter (Japan) | `sonicfgtj` | System C-2 | none | 2 banks | boots on hardware |
+| SegaSonic Cosmo Fighter (World) | `sonicfgt` | System C-2 | none | 2 banks | boots on hardware |
+| SegaSonic Popcorn Shop (Rev B) | `sonicpop` | System C-2 | none | 2 banks | boots on hardware |
+| Soreike! Anpanman Popcorn Koujou (Rev A) | `anpanmana` | System C-2 | none | 2 banks | boots on hardware |
+| Soreike! Anpanman Popcorn Koujou (Rev B) | `anpanman` | System C-2 | none | 2 banks | boots on hardware |
+| Stack Columns (Japan) | `stkclmnsj` | System C-2 | yes | 1 bank | boots on hardware |
+| Stack Columns (World) | `stkclmns` | System C-2 | yes | 1 bank | boots on hardware |
+| Thunder Force AC | `tfrceac` | System C-2 | yes | 2 banks | boots on hardware |
+| Thunder Force AC (bootleg) | `tfrceacb` | System C-2 | none | 2 banks | **does not work** |
+| Thunder Force AC (Japan) | `tfrceacj` | System C-2 | yes | 2 banks | boots on hardware |
+| Thunder Force AC (Japan, prototype, bootleg) | `tfrceacjpb` | System C-2 | yes | 2 banks | **does not work** |
+| Twin Squash | `twinsqua` | System C-2 | yes | 1 bank | boots on hardware |
+| Waku Waku Anpanman | `wwanpanmo` | System C-2 | none | 2 banks | boots on hardware |
+| Waku Waku Anpanman (Rev A) | `wwanpanm` | System C-2 | none | 2 banks | boots on hardware |
+| Waku Waku Jumbo (Rev A) | `wwjumbo` | System C-2 | none | 2 banks | boots on hardware |
+| Waku Waku Marine | `wwmarine` | System C-2 | none | 2 banks | boots on hardware |
+| Waku Waku Pajero | `wwpajero` | System C-2 | none | 2 banks | boots on hardware |
+| Waku Waku Sonic Patrol Car | `soniccar` | System C-2 | none | 2 banks | boots on hardware |
+| Zunzunkyou no Yabou (Japan) | `zunkyou` | System C-2 | yes | 4 banks | boots on hardware |
 
-These four were chosen because between them they cover every structural branch in the design: the
-no-PCM path (Columns is a System C board with no uPD7759 at all), the no-protection path
-(SegaSonic Bros. ships no protection table in its MRA), PCM bank switching and the alternate
-palette address mapping (Ribbit!), and a `ROM_COPY` mirror the MRA has to reproduce (Ribbit!
-again).
+Booting is not the same as playing. Beyond the four verified sets the games have been started
+rather than played through, and the audio has not been checked by ear on any of them. The four
+that do not work are explained under Known limitations.
 
 **One build serves every set.** Nothing about a specific game is compiled into the core: the
 memory layout, the DIP definitions, the button list and the 317-xxxx protection table all arrive
 in the MRA's data stream.
 
-MRAs for **all 57 machines** in MAME's `segac2.cpp` are in `releases/`, and every one of them has
-been booted on real hardware. **53 of 57 start and draw their attract or title screen**; the four
-above are additionally verified frame-by-frame against MAME in simulation.
-
-The four that do not work are listed under Known limitations. Booting is not the same as playing:
-beyond the four verified sets, nothing has been played through, and sound has not been checked on
-any of them.
-
-`anpanman`, `anpanmana`, `bloxeedc`, `bloxeedu`, `borench`, `borencha`, `borenchj`, `column2j`,
-`columns2`, `columnsj`, `columnsu`, `headonch`, `ichir`, `ichirbl`, `ichirj`, `ichirjbl`,
-`ichirk`, `ooparts`, `pclub`, `pclubj`, `pclubjv2`, `pclubjv3`, `pclubjv4`, `pclubjv5`,
-`potopoto`, `puyobl`, `puyoj`, `puyoja`, `puyopuy2`, `ribbitj`, `soniccar`, `sonicfgt`,
-`sonicfgtj`, `sonicpop`, `stkclmns`, `stkclmnsj`, `tantr`, `tantrbl`, `tantrbl2`, `tantrbl3`,
-`tantrbl4`, `tantrkor`, `tfrceac`, `tfrceacb`, `tfrceacj`, `tfrceacjpb`, `twinsqua`, `wwanpanm`,
-`wwanpanmo`, `wwjumbo`, `wwmarine`, `wwpajero`, `zunkyou`
-
-Nineteen of those are clones that take some of their data from the parent machine, so their MRAs
-name both — the parent has to be present alongside the clone.
-
-`wwjumbo` and `wwpajero` are a special case: MAME added them to `segac2.cpp` after the 0.276 this
-core is pinned to, so their layout and switch definitions are carried as data alongside the pinned
-driver rather than by re-pointing it, which would put the frame-exact verification of the four
-tested sets in question for the sake of two untested machines.
+Nineteen of the machines are clones that take part of their data from their parent, so both have
+to be present for those. `wwjumbo` and `wwpajero` were added to `segac2.cpp` after the MAME 0.276
+this core is pinned to; their layout and switch definitions are carried as data alongside the
+pinned driver rather than by re-pointing it, which would put the frame-exact verification of the
+four tested sets in question for the sake of two machines.
 
 ## Installation
 
