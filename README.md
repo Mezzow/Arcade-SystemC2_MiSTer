@@ -100,10 +100,26 @@ no-PCM path (Columns is a System C board with no uPD7759 at all), the no-protect
 palette address mapping (Ribbit!), and a `ROM_COPY` mirror the MRA has to reproduce (Ribbit!
 again).
 
-**One build serves every set.** Nothing about a specific game is compiled into the core: the ROM
-layout, the DIP definitions, the button list and the 317-xxxx protection table all arrive in the
-MRA's data stream. The remaining ~50 machines in MAME's `segac2.cpp` should therefore work, but
-none of them have been tested and no MRAs for them are shipped.
+**One build serves every set.** Nothing about a specific game is compiled into the core: the
+memory layout, the DIP definitions, the button list and the 317-xxxx protection table all arrive
+in the MRA's data stream.
+
+MRAs for **all 55 machines** in MAME's `segac2.cpp` are in `releases/`. The four above are the
+only ones that have been run; the other 51 are generated from the same driver description and
+checked structurally — every part they name exists at the size MAME declares, every region header
+matches the bytes its parts produce, and each carries its own protection table and DIP
+definitions — but **none of them has been booted**. Expect some not to work.
+
+`anpanman`, `anpanmana`, `bloxeedc`, `bloxeedu`, `borench`, `borencha`, `borenchj`, `column2j`,
+`columns2`, `columnsj`, `columnsu`, `headonch`, `ichir`, `ichirbl`, `ichirj`, `ichirjbl`,
+`ichirk`, `ooparts`, `pclub`, `pclubj`, `pclubjv2`, `pclubjv3`, `pclubjv4`, `pclubjv5`,
+`potopoto`, `puyobl`, `puyoj`, `puyoja`, `puyopuy2`, `ribbitj`, `soniccar`, `sonicfgt`,
+`sonicfgtj`, `sonicpop`, `stkclmns`, `stkclmnsj`, `tantr`, `tantrbl`, `tantrbl2`, `tantrbl3`,
+`tantrbl4`, `tantrkor`, `tfrceac`, `tfrceacb`, `tfrceacj`, `tfrceacjpb`, `twinsqua`, `wwanpanm`,
+`wwanpanmo`, `wwmarine`, `zunkyou`
+
+Nineteen of those are clones that take some of their data from the parent machine, so their MRAs
+name both — the parent has to be present alongside the clone.
 
 ## Installation
 
