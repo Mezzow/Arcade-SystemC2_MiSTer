@@ -171,8 +171,10 @@ never revises it. If you used an earlier build whose MRA had six buttons, delete
   direction byte to the 315-5296 and MAME compensates by forcing the DDR to 0xF
   (`segac2.cpp`, `tfrceacjpb` machine config); the core does not implement that override yet, so
   the service port reads as though TEST were held. Its parent `tfrceac` is unaffected.
-- Six `pclub` sets and the Megalo 50 moving-seat sets also have their own machine configurations
-  in MAME which the core does not reproduce; only the seat peripheral is known to be harmless.
+- The six `pclub` sets run their 68000 from a different crystal — 52.867 MHz against the 53.693175
+  every other board uses — and the core's clocking is fixed, so they are unlikely to work.
+- The Megalo 50 moving-seat machine configuration is a cabinet peripheral rather than board
+  hardware and is out of scope; the sets that use it are otherwise unaffected.
 - The Megalo 50 moving-seat device that MAME wires to Puyo Puyo and Ribbit! is a cabinet
   peripheral, not C-2 board hardware, and is out of scope.
 
