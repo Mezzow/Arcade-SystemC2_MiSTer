@@ -104,11 +104,13 @@ again).
 memory layout, the DIP definitions, the button list and the 317-xxxx protection table all arrive
 in the MRA's data stream.
 
-MRAs for **all 57 machines** in MAME's `segac2.cpp` are in `releases/`. The four above are the
-only ones that have been run; the other 53 are generated from the same driver description and
-checked structurally — every part they name exists at the size MAME declares, every region header
-matches the bytes its parts produce, and each carries its own protection table and DIP
-definitions — but **none of them has been booted**. Expect some not to work.
+MRAs for **all 57 machines** in MAME's `segac2.cpp` are in `releases/`, and every one of them has
+been booted on real hardware. **53 of 57 start and draw their attract or title screen**; the four
+above are additionally verified frame-by-frame against MAME in simulation.
+
+The four that do not work are listed under Known limitations. Booting is not the same as playing:
+beyond the four verified sets, nothing has been played through, and sound has not been checked on
+any of them.
 
 `anpanman`, `anpanmana`, `bloxeedc`, `bloxeedu`, `borench`, `borencha`, `borenchj`, `column2j`,
 `columns2`, `columnsj`, `columnsu`, `headonch`, `ichir`, `ichirbl`, `ichirj`, `ichirjbl`,
@@ -167,12 +169,21 @@ never revises it. If you used an earlier build whose MRA had six buttons, delete
   drawn: Puyo Puyo frames 120 and 300 (851 and 177 pixels of 71680), SegaSonic Bros. frames 600
   and 900, and five of Ribbit!'s seven sampled frames.
 - SegaSonic Bros. does not write the two uPD7759 samples MAME writes at frame 285.
-- `tfrceacjpb` boots into its diagnostics menu instead of the game. The board writes a bad
-  direction byte to the 315-5296 and MAME compensates by forcing the DDR to 0xF
-  (`segac2.cpp`, `tfrceacjpb` machine config); the core does not implement that override yet, so
-  the service port reads as though TEST were held. Its parent `tfrceac` is unaffected.
-- The six `pclub` sets run their 68000 from a different crystal — 52.867 MHz against the 53.693175
-  every other board uses — and the core's clocking is fixed, so they are unlikely to work.
+- **Four sets do not work.** Three of them fail for the same reason: MAME gives the machine a small
+  per-game bus quirk that this core has no equivalent for.
+
+  | set | what MAME does that the core does not |
+  |---|---|
+  | `tfrceacjpb` | forces the 315-5296 direction register to `0xF`, because the board writes a bad one. The core lets it through, so the service port reads as though TEST were held and the game boots into diagnostics. |
+  | `tfrceacb` | ignores writes to `0x800000`, disabling the protection chip's palette-bank switching. The core passes them to the protection port, the palette bases end up wrong and the screen stays black. |
+  | `ichirjbl` | adds a bootleg-specific read at `0x840108`. Without it the game's check fails and it never draws. |
+  | `pclubjv3` | cause not identified. Its protection table is generated and populated, and the other five Print Club sets work. |
+
+  Their parents and siblings are unaffected — `tfrceac`, `tfrceacj`, `ichir`, `ichirj`, `ichirk`,
+  `ichirbl` and the rest all run.
+- The six Print Club sets run their 68000 from a 52.867 MHz crystal rather than 53.693175, and the
+  core's clocking is fixed. Five of the six boot regardless; only the ~1.5% timing difference
+  remains, which has not been characterised.
 - The Megalo 50 moving-seat machine configuration is a cabinet peripheral rather than board
   hardware and is out of scope; the sets that use it are otherwise unaffected.
 - The Megalo 50 moving-seat device that MAME wires to Puyo Puyo and Ribbit! is a cabinet
