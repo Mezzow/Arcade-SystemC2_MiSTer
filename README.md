@@ -170,7 +170,7 @@ four tested sets in question for the sake of two machines.
 
 ## Installation
 
-1. Copy `releases/Arcade-SystemC2_20260902.rbf` to `_Arcade/cores/` on the MiSTer SD card.
+1. Copy `releases/Arcade-SystemC2_20260904.rbf` to `_Arcade/cores/` on the MiSTer SD card.
 2. Copy the `.mra` files from `releases/` to `_Arcade/`.
 
 ## Controls and options
