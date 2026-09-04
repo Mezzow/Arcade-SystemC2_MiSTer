@@ -196,11 +196,14 @@ never revises it. If you used an earlier build whose MRA had six buttons, delete
 
 ## Known limitations
 
-- **Audio has not been confirmed by ear on hardware.** In simulation the register streams the
-  68000 writes to the YM3438, the PSG and the uPD7759 match MAME write for write on all four sets
-  (Columns 66 FM + 4 PSG writes identical, Ribbit! 116 + 4, SegaSonic Bros. 132 + 8, Puyo Puyo
-  11751 + 2971 identical over the window both runs cover), but a matching register stream is not
-  the same as a matching sound.
+- **Audio is confirmed by ear on hardware** as of 2026-09-04: uPD7759 voice samples play, and the FM
+  and PSG sit together in the mix. Three defects were fixed to get there, all of them past the point
+  the simulation gates reach - the loader cleared `HAS_PCM` on the reset MiSTer issues after the ROM
+  download, so the sample chip was disabled for the whole session; the sample base address was a
+  23-bit concatenation into a 24-bit SDRAM port; and the mixer added jt12's output unscaled, which
+  left the FM 27 dB under the PSG. What is gated in simulation is still the register stream the
+  68000 writes to each chip, which matches MAME write for write on all four local sets, plus a check
+  that a set which commands a sample actually fetches one. Levels beyond that are judged by ear.
 - **Nothing is saved.** The board's 64 KB work RAM is battery-backed and holds bookkeeping and
   high scores; the core does not persist it, so it resets at power-off. Save states are not
   implemented either.

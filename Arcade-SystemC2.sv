@@ -419,6 +419,12 @@ always @(posedge clk_sys) begin
 end
 assign pcm_ack = (pcm_sdr_req == pcm_sdr_ack) & pcm_req;
 
+// Must equal c2_romload's BASE_PCM.  A bare literal here is how this went wrong
+// before: 23 bits into sdram's `input [24:1] addr2` is zero-extended, which put
+// the sample base at byte 0x080000 -- inside the 68000 program ROM -- instead of
+// 0x200000, and the uPD7759 read program bytes as sample headers.
+localparam [24:1] SDR_PCM_BASE = 24'h200000 >> 1;
+
 sdram sdram
 (
 	.*,
@@ -441,7 +447,7 @@ sdram sdram
 	.req1(rom_req),
 	.ack1(rom_ack),
 
-	.addr2({1'b0, 4'h1, pcm_addr[18:1]}),   // samples at byte 0x200000
+	.addr2(SDR_PCM_BASE | {6'd0, pcm_addr[18:1]}),   // samples at byte 0x200000
 	.din2(0),
 	.dout2(pcm_word),
 	.wrl2(0),

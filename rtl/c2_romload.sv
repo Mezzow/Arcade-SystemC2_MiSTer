@@ -109,6 +109,15 @@ reg [23:0] pcm_size;
 always @(posedge CLK) begin
 	PROT_WR <= 0;
 
+	// BOARD_CFG, HAS_PCM, PCM_BANK_MASK and pcm_size are deliberately NOT in
+	// this branch.  They describe the ROM set that was loaded, not the run, and
+	// nothing restores them afterwards -- they are set once, while the region
+	// headers go past.  MiSTer resets the core *after* the ROM stream, and the
+	// OSD Reset item and the reset button do it again later, so clearing them
+	// here left HAS_PCM low for the rest of the session: jt7759's `cs` tied off
+	// and PCM_REQ masked, which is silence on every C-2 board.  The protection
+	// table already works this way (c2_prot's table_ram is never cleared), and
+	// it is the same reasoning.  They are cleared when a new stream starts.
 	if (RESET) begin
 		state         <= ST_CFG0;
 		SDR_REQ       <= 0;
@@ -116,15 +125,21 @@ always @(posedge CLK) begin
 		OVERFLOW      <= 0;
 		wptr          <= 0;
 		rptr          <= 0;
-		BOARD_CFG     <= 0;
-		PCM_BANK_MASK <= 0;
-		HAS_PCM       <= 0;
 		have_lo       <= 0;
 		prot_idx      <= 0;
-		pcm_size      <= 0;
 	end
 	else begin
 		LOADING <= IOCTL_DOWNLOAD;
+
+		// LOADING is IOCTL_DOWNLOAD delayed a cycle, so this is the stream's
+		// rising edge -- the one point at which the previous set's board
+		// configuration stops being true.
+		if (IOCTL_DOWNLOAD && !LOADING) begin
+			BOARD_CFG     <= 0;
+			PCM_BANK_MASK <= 0;
+			HAS_PCM       <= 0;
+			pcm_size      <= 0;
+		end
 
 		// ---- the incoming byte goes into the FIFO, always ----
 		if (IOCTL_WR) begin

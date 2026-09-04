@@ -775,15 +775,38 @@ jt7759 pcm
 //--------------------------------------------------------------
 // Audio mix
 //
-// Levels follow the MAME machine config: FM and uPD7759 at 0.50 each, and the
-// VDP's PSG at 0.50 as well.  PSG_SND is signed 11-bit, PCM_SND signed 9-bit.
+// A shift is a claim about a chip core's output scale, so state them.  jt12's
+// snd_left is the raw sum of six 9-bit saturating channel accumulators
+// (jt12_acc.v:120 sign-extends a signed [8:0], jt12_top.v:588 adds six), so it
+// spans only +-1530 -- 4.7% of a 16-bit word -- and has to be scaled to reach
+// the DAC.  Mixing it unscaled is what buried the FM under the PSG.
+//
+// The numbers are upstream Genesis's (Genesis_MiSTer rtl/system.sv:1410-1432):
+// x22.25 on the FM, and 1/32 off the PSG before its <<3.  They transfer because
+// this is the same jt12 + jt89 pair under the same weights: segac2.cpp routes
+// the FM at 0.50 (:1912) and the VDP at 0.50 (:1893) with 315_5313.cpp:248
+// putting SEGAPSG into the VDP at 0.50 -- the megadriv values, unchanged.  Do
+// not read those weights as a peak ratio; each MAME device normalises its own
+// output differently, which is why the ratio here comes from a mix that was
+// tuned against hardware rather than from arithmetic on the route numbers.
+//
+// The uPD7759 goes in at MAME's weight for it, equal to the FM (:1925 0.50
+// against :1912 0.50).  PCM_SND is signed 9-bit, so <<7 puts its +-255 at
+// +-32640 -- also the scale jt7759's own reference dump uses (jt7759.v:136).
+//
+// Peaks: FM +-34042 (clamped), PSG +-7905, PCM +-32640.
 //--------------------------------------------------------------
-wire signed [15:0] psg_ext = {{2{PSG_SND[10]}}, PSG_SND, 3'b000};
-wire signed [15:0] pcm_ext = {{2{PCM_SND[8]}},  PCM_SND, 5'b00000};
+wire signed [21:0] fm_x    = {{6{FM_L[15]}}, FM_L};
+wire signed [21:0] fm_ext  = (fm_x <<< 4) + (fm_x <<< 2) + (fm_x <<< 1) + (fm_x >>> 2);
 
-function automatic signed [15:0] clamp(input signed [17:0] v);
-	clamp = (v >  18'sd32767) ?  16'sd32767 :
-	        (v < -18'sd32768) ? -16'sd32768 : v[15:0];
+wire signed [10:0] psg_adj = PSG_SND - (PSG_SND >>> 5);
+wire signed [21:0] psg_ext = {{8{psg_adj[10]}}, psg_adj, 3'b000};
+
+wire signed [21:0] pcm_ext = {{6{PCM_SND[8]}},  PCM_SND, 7'b0000000};
+
+function automatic signed [15:0] clamp(input signed [21:0] v);
+	clamp = (v >  22'sd32767) ?  16'sd32767 :
+	        (v < -22'sd32768) ? -16'sd32768 : v[15:0];
 endfunction
 
 // The board is mono, and only the YM3438's left output reaches the amplifier:
@@ -791,7 +814,7 @@ endfunction
 // channel not connected".  A game that pans a channel hard right goes silent on
 // this hardware, so summing both outputs here would be louder than the board
 // and would hide that.  FM_R is left unread deliberately.
-wire signed [17:0] mix = {{2{FM_L[15]}}, FM_L} + {{2{psg_ext[15]}}, psg_ext} + {{2{pcm_ext[15]}}, pcm_ext};
+wire signed [21:0] mix = fm_ext + psg_ext + pcm_ext;
 
 assign AUDIO_L = clamp(mix);
 assign AUDIO_R = clamp(mix);
