@@ -53,6 +53,22 @@ module c2_romload
 
 	// ---- configuration ----
 	output reg  [7:0] BOARD_CFG,
+	// The 315-5296 direction register is ANDed with this before it decides
+	// whether a port reads back its output latch.  0xFF is "no override" and is
+	// what every set but one wants; tfrceacjpb needs 0x0F because it writes a
+	// bad DDR value and would otherwise read the service port as though TEST
+	// were held (segac2.cpp:1931).  Carried in the board config header.
+	output reg  [7:0] IO_DIR_OVERRIDE,
+	// The byte the 68000 work RAM is filled with while the ROM stream loads.
+	// The board's whole 64 KB at 0xE00000 is battery backed, so on a machine
+	// that has been switched on before this is last session's contents, not a
+	// constant.  0x00 is the closest a core with no save file can get: it is
+	// what a cleared backup RAM holds, and it stops the sound driver reading a
+	// garbage sample request out of its own workspace before the game has
+	// initialised it.  borencha and borenchj want 0xFF instead -- they never
+	// write the YM3438 panning registers and rely on the fill to leave them
+	// enabled, which is MAME's reason for NVRAM(DEFAULT_ALL_1) (segac2.cpp:1873).
+	output reg  [7:0] NVRAM_FILL,
 	output reg  [1:0] PCM_BANK_MASK,
 	output reg        HAS_PCM,
 	output reg        LOADING,
@@ -136,6 +152,8 @@ always @(posedge CLK) begin
 		// configuration stops being true.
 		if (IOCTL_DOWNLOAD && !LOADING) begin
 			BOARD_CFG     <= 0;
+			IO_DIR_OVERRIDE <= 8'hFF;
+			NVRAM_FILL      <= 8'h00;
 			PCM_BANK_MASK <= 0;
 			HAS_PCM       <= 0;
 			pcm_size      <= 0;
@@ -159,11 +177,23 @@ always @(posedge CLK) begin
 			rptr <= rptr + 1'd1;
 			case (state)
 			ST_CFG0: begin
-				BOARD_CFG <= byte_in;
-				state     <= ST_CFG1;
+				BOARD_CFG  <= byte_in;
+				// Acted on here rather than from BOARD_CFG a state later,
+				// because the work RAM fill runs off LOADING and starts
+				// immediately.  A pass over all 32768 words takes 65536 MCLKs
+				// and the shortest download is millions, so the first partial
+				// pass under the reset default is overwritten many times over.
+				NVRAM_FILL <= byte_in[1] ? 8'hFF : 8'h00;
+				state      <= ST_CFG1;
 			end
 
-			ST_CFG1: state <= ST_REGION;
+			ST_CFG1: begin
+				// Byte 1 is the parameter for whatever byte 0 asked for.  It used to
+				// be consumed and discarded.  BOARD_CFG was latched last state, so
+				// it already holds byte 0 here.
+				if (BOARD_CFG[0]) IO_DIR_OVERRIDE <= byte_in;
+				state <= ST_REGION;
+			end
 
 			ST_REGION: begin
 				region  <= byte_in[3:0];

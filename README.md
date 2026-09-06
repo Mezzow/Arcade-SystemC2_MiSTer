@@ -88,7 +88,7 @@ what lets a single build serve every machine in the family.
 ## Supported games
 
 All 57 machines in MAME's `segac2.cpp` have an MRA in `releases/`, and every one of them has been
-started on real hardware: **53 reach their attract or title screen**. The four marked as verified
+started on real hardware: **54 reach their attract or title screen**. The four marked as verified
 below are additionally compared frame-by-frame against MAME in simulation, and were chosen because
 between them they cover every structural branch in the design -- the no-PCM path, the
 no-protection path, PCM bank switching, the alternate palette address mapping, and a `ROM_COPY`
@@ -144,7 +144,7 @@ mirror the MRA has to reproduce.
 | Thunder Force AC | `tfrceac` | System C-2 | yes | 2 banks | boots on hardware |
 | Thunder Force AC (bootleg) | `tfrceacb` | System C-2 | none | 2 banks | **does not work** |
 | Thunder Force AC (Japan) | `tfrceacj` | System C-2 | yes | 2 banks | boots on hardware |
-| Thunder Force AC (Japan, prototype, bootleg) | `tfrceacjpb` | System C-2 | yes | 2 banks | **does not work** |
+| Thunder Force AC (Japan, prototype, bootleg) | `tfrceacjpb` | System C-2 | yes | 2 banks | boots on hardware |
 | Twin Squash | `twinsqua` | System C-2 | yes | 1 bank | boots on hardware |
 | Waku Waku Anpanman | `wwanpanmo` | System C-2 | none | 2 banks | boots on hardware |
 | Waku Waku Anpanman (Rev A) | `wwanpanm` | System C-2 | none | 2 banks | boots on hardware |
@@ -170,7 +170,7 @@ four tested sets in question for the sake of two machines.
 
 ## Installation
 
-1. Copy `releases/Arcade-SystemC2_20260904.rbf` to `_Arcade/cores/` on the MiSTer SD card.
+1. Copy `releases/Arcade-SystemC2_20260906.rbf` to `_Arcade/cores/` on the MiSTer SD card.
 2. Copy the `.mra` files from `releases/` to `_Arcade/`.
 
 ## Controls and options
@@ -188,7 +188,22 @@ four tested sets in question for the sake of two machines.
   mapped Test button.
 - DIP switches come from each MRA's `<switches>` block, with the defaults MAME's driver declares
   (not "all switches off", which is a different machine — Puyo Puyo's Demo Sounds defaults to on).
-- OSD: aspect ratio, scandoubler effects, DIP switches, enter service mode, reset.
+- OSD: aspect ratio, scandoubler effects, **Save Backup RAM**, DIP switches, enter service mode,
+  reset.
+
+### Backup RAM
+
+All 64 KB of the board's work RAM at `0xE00000` sits behind a battery, and holds bookkeeping,
+operator settings and high scores. The core persists it: each MRA declares
+`<nvram index="2" size="65536"/>`, so the firmware restores the file when the game loads and
+writes it back about half a second after the game stops touching that RAM. **Save Backup RAM** in
+the OSD is on by default; turning it off stops the core requesting a save, and the game then runs
+from a freshly filled RAM every time.
+
+This is not only about high scores. The sound driver on the Waku Waku games keeps its pending
+sample request in that same RAM and reads it before initialising it, so what the RAM powers up
+holding is audible — see Known limitations. With no save file the core fills it the way a cleared
+backup RAM reads, which is what the machine's own BACKUP RAM CLEAR service item writes.
 
 Note that MiSTer writes a core's input map **once**, from the MRA's `<buttons default=...>`, and
 never revises it. If you used an earlier build whose MRA had six buttons, delete
@@ -204,26 +219,28 @@ never revises it. If you used an earlier build whose MRA had six buttons, delete
   left the FM 27 dB under the PSG. What is gated in simulation is still the register stream the
   68000 writes to each chip, which matches MAME write for write on all four local sets, plus a check
   that a set which commands a sample actually fetches one. Levels beyond that are judged by ear.
-- **Nothing is saved.** The board's 64 KB work RAM is battery-backed and holds bookkeeping and
-  high scores; the core does not persist it, so it resets at power-off. Save states are not
-  implemented either.
+- **Save states are not implemented.** The battery-backed work RAM *is* persisted -- see
+  Backup RAM below -- but there is no save-state facility.
 - Only the four sets above have MRAs and have been tested; the rest of `segac2.cpp` is untested.
 - Residual differences against MAME, all in mid-display raster timing rather than in what is
   drawn: Puyo Puyo frames 120 and 300 (851 and 177 pixels of 71680), SegaSonic Bros. frames 600
   and 900, and five of Ribbit!'s seven sampled frames.
 - SegaSonic Bros. does not write the two uPD7759 samples MAME writes at frame 285.
-- **Four sets do not work.** Three of them fail for the same reason: MAME gives the machine a small
+- **Three sets do not work.** Two of them fail for the same reason: MAME gives the machine a small
   per-game bus quirk that this core has no equivalent for.
 
   | set | what MAME does that the core does not |
   |---|---|
-  | `tfrceacjpb` | forces the 315-5296 direction register to `0xF`, because the board writes a bad one. The core lets it through, so the service port reads as though TEST were held and the game boots into diagnostics. |
   | `tfrceacb` | ignores writes to `0x800000`, disabling the protection chip's palette-bank switching. The core passes them to the protection port, the palette bases end up wrong and the screen stays black. |
   | `ichirjbl` | adds a bootleg-specific read at `0x840108`. Without it the game's check fails and it never draws. |
   | `pclubjv3` | cause not identified. Its protection table is generated and populated, and the other five Print Club sets work. |
 
   Their parents and siblings are unaffected — `tfrceac`, `tfrceacj`, `ichir`, `ichirj`, `ichirk`,
-  `ichirbl` and the rest all run.
+  `ichirbl` and the rest all run.  `tfrceacjpb` used to be a fourth: it writes `0x58` to the
+  315-5296 direction register, claiming the service, DIP and coinage ports as outputs, so they read
+  back the output latch and the game falls into its diagnostics menu.  MAME masks the register with
+  `0x0F` for that one set, and the core now does too — the mask travels in the ROM stream's config
+  header, so the MRA carries it and the RTL stays general.
 - The six Print Club sets run their 68000 from a 52.867 MHz crystal rather than 53.693175, and the
   core's clocking is fixed. Five of the six boot regardless; only the ~1.5% timing difference
   remains, which has not been characterised.

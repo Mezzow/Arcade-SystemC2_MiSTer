@@ -180,7 +180,15 @@ assign USER_OUT = '1;
 assign {UART_RTS, UART_TXD, UART_DTR} = 0;
 assign {SD_SCK, SD_MOSI, SD_CS} = 'Z;
 assign BUTTONS   = 0;
-assign LED_USER  = ioctl_download;
+// Lit while the ROM stream is coming in, and then held on for the rest of the
+// session if the loader ever overflowed.  c2_romload buffers the stream and
+// raises OVERFLOW if a byte arrived that it could not hold -- which means the
+// ROM image in SDRAM is short and everything after it is undefined.  That
+// alarm used to be connected in the testbench only, i.e. in the one place it
+// cannot fire: the bench feeds the loader from a file, hardware feeds it from
+// the HPS at a latency nobody has measured.  A stuck user LED after a load is
+// worth more than a signal that is unreachable on the machine it guards.
+assign LED_USER  = ioctl_download | ldr_overflow;
 assign LED_DISK  = 0;
 assign LED_POWER = 0;
 assign VGA_F1    = 0;
@@ -206,8 +214,13 @@ assign DDRAM_WE       = 0;
 localparam CONF_STR = {
 	"SystemC2;;",
 	"-;",
-	"H0O[2:1],Aspect ratio,Original,Full Screen,[ARC1],[ARC2];",
+	"O[2:1],Aspect ratio,Original,Full Screen,[ARC1],[ARC2];",
 	"O[5:3],Scandoubler Fx,None,HQ2x,CRT 25%,CRT 50%,CRT 75%;",
+	"-;",
+	// "Save <device>" is how the sibling arcade cores name this and the board
+	// calls the device backup RAM -- BACKUP RAM CLEAR is its own service menu
+	// item.  On,Off so the default is on, matching Arcade-TaitoB.sv:79.
+	"O[6],Save Backup RAM,On,Off;",
 	"-;",
 	"DIP;",
 	"-;",
@@ -233,6 +246,20 @@ wire   [7:0] ioctl_dout;
 wire   [7:0] ioctl_index;
 wire         ioctl_wait;
 
+// The ioctl index the MRA's <nvram> tag declares for the backup RAM.  Index 0
+// is the ROM stream and 254 the DIP block; everything else is free, and 2 is
+// what the arcade cores conventionally use.
+localparam [7:0] NVRAM_INDEX = 8'd2;
+
+// Backup RAM upload, driven below.  hps_io declares ioctl_index [15:0] and this
+// core narrows it to [7:0], so every comparison against it masks rather than
+// testing the whole vector.
+wire         ioctl_upload;
+wire         ioctl_upload_req;
+wire   [7:0] ioctl_upload_index = NVRAM_INDEX;
+wire   [7:0] ioctl_din;
+wire         ioctl_rd;
+
 hps_io #(.CONF_STR(CONF_STR), .WIDE(0)) hps_io
 (
 	.clk_sys(clk_sys),
@@ -245,7 +272,13 @@ hps_io #(.CONF_STR(CONF_STR), .WIDE(0)) hps_io
 	.forced_scandoubler(forced_scandoubler),
 
 	.status(status),
-	.status_menumask({|status[2:1]}),
+	// No menu item is hidden, so nothing is masked.  This used to be
+	// {|status[2:1]} against an "H0" on the Aspect ratio line, which is the
+	// item's own value: selecting anything but Original set the bit that hid
+	// the item that sets the bit, and it stayed hidden until the core was
+	// reloaded.  Both halves came from the MiSTer arcade template, where H0
+	// there is gated on direct_video -- which this core does not use.
+	.status_menumask(0),
 
 	.ioctl_download(ioctl_download),
 	.ioctl_index(ioctl_index),
@@ -253,6 +286,12 @@ hps_io #(.CONF_STR(CONF_STR), .WIDE(0)) hps_io
 	.ioctl_addr(ioctl_addr),
 	.ioctl_dout(ioctl_dout),
 	.ioctl_wait(ioctl_wait),
+
+	.ioctl_upload(ioctl_upload),
+	.ioctl_upload_req(ioctl_upload_req),
+	.ioctl_upload_index(ioctl_upload_index),
+	.ioctl_din(ioctl_din),
+	.ioctl_rd(ioctl_rd),
 
 	.gamma_bus(gamma_bus),
 	.sdram_sz(sdram_sz)
@@ -330,6 +369,7 @@ wire reset = RESET | status[0] | buttons[1] | ioctl_download;
 // Index 0 is the MRA's unified stream, parsed by c2_romload.  Index 254 is
 // the DIP switch block the MRA's <switches> section produces; the framework
 // sends it as eight bytes, and the first two are the two ports this board has.
+// Index 2 is the backup RAM, declared by the MRA's <nvram> tag; see below.
 //////////////////////////////////////////////////////////////////////////////
 wire rom_download = ioctl_download && (ioctl_index == 8'd0);
 
@@ -339,6 +379,64 @@ always @(posedge clk_sys) begin
 	if (ioctl_wr && (ioctl_index == 8'd254) && !ioctl_addr[24:3])
 		dip_sw[ioctl_addr[2:0]] <= ioctl_dout;
 end
+
+//////////////////////////////////////////////////////////////////////////////
+// Backup RAM save and restore
+//
+// All 64 KB of work RAM at 0xE00000 is battery backed on the board
+// (segac2.cpp:775 shares it as "nvram"), so a cabinet that has been switched on
+// before starts from the previous session rather than from any constant.  The
+// MRA declares <nvram index="2" size="65536"/>, so the firmware downloads the
+// saved bytes at that index on load and reads them back on an upload request.
+//
+// c2_system's port B is the save port and already maps one for one: BRAM_A is a
+// flat byte address over exactly 64 KB and BRAM_A[0] picks the byte lane, so
+// file byte N is the 68000 byte at 0xE00000 + N -- the same layout MAME writes.
+//
+// Ordering matters and is not an accident.  The power-on fill owns port B for
+// the whole of LOADING and wins unconditionally (c2_system.sv:860), so a
+// restore has to land after it.  LOADING follows index 0 only, while `reset`
+// above follows ioctl_download for *any* index -- so during the index 2
+// download the core is held in reset with LOADING already low and port B free.
+// If the firmware ever sent the nvram before the ROM, the fill would erase it;
+// that is the first thing to check if a restore silently does nothing.
+//
+// `nv_dirty` asks for a save once the game has written work RAM and then left
+// it alone for a moment.  Requesting on every write would save continuously
+// during the game's own RAM initialisation.
+//////////////////////////////////////////////////////////////////////////////
+wire        nv_is_ours = (ioctl_index[5:0] == NVRAM_INDEX[5:0]);
+wire        nv_wr      = ioctl_download & ioctl_wr & nv_is_ours;
+wire [15:0] nv_addr    = ioctl_addr[15:0];
+wire        bk_ena     = ~status[6];      // "Save Backup RAM,On,Off", so 0 = on
+
+wire        wram_wr;                      // one strobe per 68000 write to work RAM
+wire  [7:0] bram_do;
+
+reg  [24:0] nv_idle  = 25'h1ffffff;
+reg         nv_dirty = 1'b0;
+
+always @(posedge clk_sys) begin
+	if (wram_wr) begin
+		nv_idle  <= 25'd0;
+		nv_dirty <= 1'b0;
+	end
+	else if (nv_idle != 25'h1ffffff) begin
+		nv_idle  <= nv_idle + 25'd1;
+		// about half a second at 53.69 MHz with no further writes
+		nv_dirty <= (nv_idle == 25'd26800000);
+	end
+	else begin
+		nv_dirty <= 1'b0;
+	end
+end
+
+assign ioctl_upload_req = nv_dirty & bk_ena;
+
+// Gated on the index, not fed unconditionally: ioctl_din is shared with every
+// other upload the framework might run, and driving it for all of them would
+// hand them this RAM's contents.
+assign ioctl_din = nv_is_ours ? bram_do : 8'd0;
 
 wire [24:1] ldr_addr;
 wire [15:0] ldr_data;
@@ -350,6 +448,9 @@ wire  [7:0] prot_a;
 wire  [3:0] prot_d;
 wire  [7:0] board_cfg;
 wire  [1:0] pcm_bank_mask;
+wire  [7:0] io_dir_override;
+wire  [7:0] nvram_fill;
+wire        ldr_overflow;
 wire        has_pcm;
 wire        loading;
 
@@ -377,9 +478,12 @@ c2_romload romload
 	.PROT_D(prot_d),
 
 	.BOARD_CFG(board_cfg),
+	.IO_DIR_OVERRIDE(io_dir_override),
+	.NVRAM_FILL(nvram_fill),
 	.PCM_BANK_MASK(pcm_bank_mask),
 	.HAS_PCM(has_pcm),
-	.LOADING(loading)
+	.LOADING(loading),
+	.OVERFLOW(ldr_overflow)
 );
 
 //////////////////////////////////////////////////////////////////////////////
@@ -530,9 +634,15 @@ c2_system c2
 	.MCLK(clk_sys),
 
 	.LOADING(loading),
-	.PAUSE_EN(1'b0),
+	// Freeze the game while the OSD is open, the way the other arcade cores do.
+	// c2_system gates the 68000, PSG, FM and uPD7759 clock enables on this and
+	// deliberately leaves the VDP running, so the picture stays live under the
+	// menu.  The pause logic has been there since the fork with nothing driving
+	// it -- OSD_STATUS is an emu input that was going unread.
+	.PAUSE_EN(OSD_STATUS),
 
-	.IO_DIR_OVERRIDE(8'hFF),
+	.IO_DIR_OVERRIDE(io_dir_override),
+	.NVRAM_FILL(nvram_fill),
 	.PCM_BANK_MASK(pcm_bank_mask),
 	.HAS_PCM(has_pcm),
 
@@ -571,22 +681,30 @@ c2_system c2
 	.DSW1(dip_sw[0]),
 	.DSW2(dip_sw[1]),
 
-	// Save support is deferred; the work RAM still gets its 0xFF fill at load.
-	.BRAM_A(16'd0),
-	.BRAM_DI(8'd0),
-	.BRAM_DO(),
-	.BRAM_WE(1'b0),
+	// The save port.  It reads and writes the same 64 KB the 68000 sees, one
+	// byte at a time, addressed by the ioctl stream; the fill still runs during
+	// LOADING and a restore lands after it.  BRAM_CHANGE is c2_system's own
+	// sticky dirty flag and is left open -- the autosave timer above runs off
+	// DBG_WRAM_WR instead, because it needs the per-write strobe to tell "quiet
+	// for half a second" from "written at some point since the ROM loaded".
+	.BRAM_A(nv_addr),
+	.BRAM_DI(ioctl_dout),
+	.BRAM_DO(bram_do),
+	.BRAM_WE(nv_wr),
 	.BRAM_CHANGE(),
 
 	.DBG_M68K_A(),
 	.DBG_MBUS_DO(),
 	.DBG_UNMAPPED(),
 	.DBG_BUS_CYCLE(dbg_bus_cycle),
-	.DBG_WRAM_WR(),
+	.DBG_WRAM_WR(wram_wr),
 	.DBG_VDP_WR(dbg_vdp_wr),
 	.DBG_PAL_WR(),
 	.DBG_PROT_WR(),
 	.DBG_IO_WR(),
+	.DBG_IO_RD(),
+	.DBG_IO_RA(),
+	.DBG_IO_Q(),
 	.DBG_FM_WR(),
 	.DBG_PCM_WR(),
 	.DBG_IRQ6(),

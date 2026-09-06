@@ -32,6 +32,7 @@ module c2_system
 
 	// ---- per-game configuration, all of it derived from the ROM stream ----
 	input       [7:0] IO_DIR_OVERRIDE, // 0xFF except tfrceacjpb (0x0F)
+	input       [7:0] NVRAM_FILL,      // work RAM power-on fill, see below
 	input       [1:0] PCM_BANK_MASK,   // (upd region size / 0x20000) - 1
 	input             HAS_PCM,         // C-2 board; a System C board has none
 
@@ -97,6 +98,11 @@ module c2_system
 	output            DBG_PAL_WR,
 	output            DBG_PROT_WR,
 	output            DBG_IO_WR,
+	// Reads of the 315-5296, so a divergence that shows up only in what the
+	// game *reads* can be compared against MAME the way the writes already are.
+	output            DBG_IO_RD,
+	output      [3:0] DBG_IO_RA,
+	output      [7:0] DBG_IO_Q,
 	output            DBG_FM_WR,
 	output      [1:0] DBG_FM_A,
 	output      [7:0] DBG_FM_D,
@@ -834,12 +840,25 @@ reg         RAM_SEL;
 wire [15:0] ram68k_q;
 wire  [7:0] ram_bram_q_u, ram_bram_q_l;
 
-// Port B does double duty: it fills the RAM with 0xFF while the ROM stream is
-// loading, and afterwards it is the save-file port.  The fill is not cosmetic:
-// NVRAM(DEFAULT_ALL_1) is what borencha needs to have sound at all, because it
-// lacks the init code its sibling set has (segac2.cpp:1873).
+// Port B does double duty: it fills the RAM while the ROM stream is loading,
+// and afterwards it is the save-file port.  The fill is not cosmetic.
+//
+// The whole 64 KB at 0xE00000 is battery backed on the board (segac2.cpp:775
+// shares it as "nvram"), so on any machine that has been switched on before it
+// holds the previous session's contents.  This core has no save file, so every
+// boot is a fresh-battery boot, and the fill is what the game finds.
+//
+// It used to be 0xFF for every set, copying MAME's NVRAM(DEFAULT_ALL_1).  That
+// value was chosen in MAME for borencha alone -- it never writes the YM3438
+// panning registers and needs the fill to leave them enabled -- and it is wrong
+// for wwanpanm and soniccar, whose sound driver reads its pending-sample byte
+// out of this RAM before the game initialises it.  0xFF there means "play
+// sample (0xFF & 0x1F) - 1 = 0x1E from bank 1", which does not exist, and the
+// bogus request leaves the driver's channel busy long enough to swallow the
+// first real sample: 68 s of silence on wwanpanm, 40 s on soniccar, which is
+// exactly what was reported.  Measured both ways in MAME, see NOTES.md.
 wire [14:0] ram_b_addr = LOADING ? ram_rst_a[15:1] : BRAM_A[15:1];
-wire  [7:0] ram_b_data = LOADING ? 8'hFF           : BRAM_DI;
+wire  [7:0] ram_b_data = LOADING ? NVRAM_FILL      : BRAM_DI;
 wire        ram_b_we_u = LOADING ? 1'b1 : (BRAM_WE & ~BRAM_A[0]);
 wire        ram_b_we_l = LOADING ? 1'b1 : (BRAM_WE &  BRAM_A[0]);
 
@@ -922,6 +941,10 @@ assign DBG_UNMAPPED = unmapped;
 // correctly and then looked up in banks 1, 2 and 3, which the game never
 // writes.  The whole screen came out black.
 wire wr_commit = (mstate == MBUS_FINISH) && (msrc == MSRC_M68K) && ~MBUS_RNW &&
+                 ~M68K_LDS_N &&
+                 (M68K_AS_N | ~M68K_UDS_N | ~M68K_LDS_N);
+// The same gate for reads.  Debug only -- nothing in the datapath uses it.
+wire rd_commit = (mstate == MBUS_FINISH) && (msrc == MSRC_M68K) &&  MBUS_RNW &&
                  ~M68K_LDS_N &&
                  (M68K_AS_N | ~M68K_UDS_N | ~M68K_LDS_N);
 
@@ -1185,6 +1208,9 @@ assign DBG_VDP_WR     = VDP_SEL & ~MBUS_RNW;
 assign DBG_PAL_WR     = PAL_SEL & ~MBUS_RNW & (~MBUS_UDS_N | ~MBUS_LDS_N);
 assign DBG_PROT_WR    = wr_commit & PROT_SEL;
 assign DBG_IO_WR      = wr_commit & IO_SEL;
+assign DBG_IO_RD      = rd_commit & IO_SEL;
+assign DBG_IO_RA      = MBUS_A[4:1];
+assign DBG_IO_Q       = IO_DO;
 assign DBG_FM_WR      = wr_commit & FM_SEL;
 assign DBG_FM_A       = MBUS_A[2:1];
 assign DBG_FM_D       = M68K_DO[7:0];
